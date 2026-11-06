@@ -1,4 +1,4 @@
-
+import DeviceMap from "../components/DeviceMap";
 import { useEffect, useRef, useState } from "react";
 
 import {
@@ -50,6 +50,8 @@ function Dashboard() {
                   ...device,
                   isSharing: true,
                   status: "Online",
+                  latitude: latitude,
+                  longitude: longitude,
                   location: `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`,
                   lastUpdated: new Date().toLocaleTimeString()
                 }
@@ -222,7 +224,7 @@ function Dashboard() {
           </h2>
 
           <p className="mt-1 text-sm text-slate-400">
-            Your shared device locations will appear here.
+             View the current locations of devices sharing with you.
           </p>
         </div>
 
@@ -240,6 +242,7 @@ function Dashboard() {
             when sharing is enabled.
           </p>
         </div>
+         <DeviceMap devices={devices} />
       </section>
 
       <section>
