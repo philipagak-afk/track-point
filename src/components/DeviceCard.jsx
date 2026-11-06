@@ -1,7 +1,13 @@
 
-import { Smartphone, Laptop, MapPin, Clock } from "lucide-react";
+import {
+  Smartphone,
+  Laptop,
+  MapPin,
+  Clock,
+  Trash2
+} from "lucide-react";
 
-function DeviceCard({ device }) {
+function DeviceCard({ device, onRemove }) {
 
   const DeviceIcon =
     device.type === "Laptop" ? Laptop : Smartphone;
@@ -53,8 +59,12 @@ function DeviceCard({ device }) {
 
       </div>
 
-      <button className="mt-6 w-full rounded-xl border border-slate-700 py-2 text-sm text-white transition hover:bg-slate-800">
-        View device
+      <button
+        onClick={() => onRemove(device.id)}
+        className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/30 py-2 text-sm text-red-400 transition hover:bg-red-500/10"
+      >
+        <Trash2 size={16} />
+        Remove Device
       </button>
 
     </div>

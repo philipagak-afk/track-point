@@ -1,4 +1,6 @@
 
+import { useState } from "react";
+
 import {
   Smartphone,
   Wifi,
@@ -8,35 +10,50 @@ import {
 
 import StatCard from "../components/StatCard";
 import DeviceCard from "../components/DeviceCard";
-
-const devices = [
-  {
-    id: 1,
-    name: "Personal Phone",
-    type: "Smartphone",
-    status: "Online",
-    location: "Location not connected",
-    lastUpdated: "Sample device"
-  },
-  {
-    id: 2,
-    name: "Work Laptop",
-    type: "Laptop",
-    status: "Online",
-    location: "Location not connected",
-    lastUpdated: "Sample device"
-  },
-  {
-    id: 3,
-    name: "Backup Phone",
-    type: "Smartphone",
-    status: "Offline",
-    location: "Last location unavailable",
-    lastUpdated: "No recent update"
-  }
-];
+import DeviceForm from "../components/DeviceForm";
 
 function Dashboard() {
+
+  // Store registered devices
+  const [devices, setDevices] = useState([]);
+
+  // Control the registration form
+  const [showForm, setShowForm] = useState(false);
+
+  // Add a new device
+  function handleAddDevice(newDevice) {
+    setDevices((previousDevices) => [
+      ...previousDevices,
+      newDevice
+    ]);
+
+    setShowForm(false);
+  }
+
+  // Remove a device
+  function handleRemoveDevice(deviceId) {
+    setDevices((previousDevices) =>
+      previousDevices.filter(
+        (device) => device.id !== deviceId
+      )
+    );
+  }
+
+  // Calculate dashboard statistics
+  const totalDevices = devices.length;
+
+  const onlineDevices = devices.filter(
+    (device) => device.status === "Online"
+  ).length;
+
+  const offlineDevices = devices.filter(
+    (device) => device.status === "Offline"
+  ).length;
+
+  const sharedDevices = devices.filter(
+    (device) => device.status === "Online"
+  ).length;
+
   return (
     <div className="space-y-8">
 
@@ -56,7 +73,7 @@ function Dashboard() {
 
         <StatCard
           title="Total Devices"
-          value="3"
+          value={totalDevices}
           description="Registered devices"
           icon={Smartphone}
           color="bg-violet-500/10 text-violet-400"
@@ -64,24 +81,24 @@ function Dashboard() {
 
         <StatCard
           title="Online Devices"
-          value="2"
-          description="Sample device status"
+          value={onlineDevices}
+          description="Currently online"
           icon={Wifi}
           color="bg-emerald-500/10 text-emerald-400"
         />
 
         <StatCard
           title="Offline Devices"
-          value="1"
-          description="Sample device status"
+          value={offlineDevices}
+          description="Currently offline"
           icon={WifiOff}
           color="bg-orange-500/10 text-orange-400"
         />
 
         <StatCard
           title="Shared Devices"
-          value="0"
-          description="Devices shared with you"
+          value={sharedDevices}
+          description="Actively sharing location"
           icon={Users}
           color="bg-blue-500/10 text-blue-400"
         />
@@ -123,34 +140,72 @@ function Dashboard() {
       {/* Devices section */}
       <section>
 
-        <div className="mb-5 flex items-center justify-between">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
+
           <div>
             <h2 className="text-lg font-semibold text-white">
               Your Devices
             </h2>
 
             <p className="mt-1 text-sm text-slate-400">
-              An overview of your registered devices.
+              Manage your registered devices.
             </p>
           </div>
 
-          <button className="rounded-xl bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700">
+          <button
+            onClick={() => setShowForm(true)}
+            className="rounded-xl bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700"
+          >
             + Add Device
           </button>
+
         </div>
 
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+        {/* Device cards */}
+        {devices.length > 0 ? (
 
-          {devices.map((device) => (
-            <DeviceCard
-              key={device.id}
-              device={device}
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+
+            {devices.map((device) => (
+              <DeviceCard
+                key={device.id}
+                device={device}
+                onRemove={handleRemoveDevice}
+              />
+            ))}
+
+          </div>
+
+        ) : (
+
+          <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-900 p-10 text-center">
+
+            <Smartphone
+              size={35}
+              className="mx-auto text-slate-500"
             />
-          ))}
 
-        </div>
+            <h3 className="mt-4 font-semibold text-white">
+              No devices registered
+            </h3>
+
+            <p className="mt-2 text-sm text-slate-400">
+              Add your first device to get started.
+            </p>
+
+          </div>
+
+        )}
 
       </section>
+
+      {/* Registration modal */}
+      {showForm && (
+        <DeviceForm
+          onAddDevice={handleAddDevice}
+          onClose={() => setShowForm(false)}
+        />
+      )}
 
     </div>
   );
