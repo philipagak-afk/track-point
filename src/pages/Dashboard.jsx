@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   Smartphone,
@@ -13,14 +13,12 @@ import DeviceCard from "../components/DeviceCard";
 import DeviceForm from "../components/DeviceForm";
 
 function Dashboard() {
-
-  // Store registered devices
   const [devices, setDevices] = useState([]);
-
-  // Control the registration form
   const [showForm, setShowForm] = useState(false);
 
-  // Add a new device
+  // Keeps track of active browser location watchers.
+  const watchersRef = useRef({});
+
   function handleAddDevice(newDevice) {
     setDevices((previousDevices) => [
       ...previousDevices,
@@ -30,8 +28,117 @@ function Dashboard() {
     setShowForm(false);
   }
 
-  // Remove a device
+  function handleStartSharing(deviceId) {
+    if (!navigator.geolocation) {
+      alert("Your browser does not support location sharing.");
+      return;
+    }
+
+    // Prevent starting multiple watchers for the same device.
+    if (watchersRef.current[deviceId] !== undefined) {
+      return;
+    }
+
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+
+        setDevices((previousDevices) =>
+          previousDevices.map((device) =>
+            device.id === deviceId
+              ? {
+                  ...device,
+                  isSharing: true,
+                  status: "Online",
+                  location: `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`,
+                  lastUpdated: new Date().toLocaleTimeString()
+                }
+              : device
+          )
+        );
+      },
+
+      (error) => {
+        const activeWatch = watchersRef.current[deviceId];
+
+        if (activeWatch !== undefined) {
+          navigator.geolocation.clearWatch(activeWatch);
+          delete watchersRef.current[deviceId];
+        }
+
+        setDevices((previousDevices) =>
+          previousDevices.map((device) =>
+            device.id === deviceId
+              ? {
+                  ...device,
+                  isSharing: false,
+                  status: "Not sharing",
+                  location: "Location sharing is off"
+                }
+              : device
+          )
+        );
+
+        if (error.code === 1) {
+          alert("Location permission was denied. Allow location access in your browser to share.");
+        } else if (error.code === 2) {
+          alert("Your current location could not be determined. Please try again.");
+        } else if (error.code === 3) {
+          alert("Getting your location took too long. Please try again.");
+        } else {
+          alert("Something went wrong while getting your location.");
+        }
+      },
+
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0
+      }
+    );
+
+    watchersRef.current[deviceId] = watchId;
+  }
+
+  function handleStopSharing(deviceId) {
+    const watchId = watchersRef.current[deviceId];
+
+    if (watchId !== undefined) {
+      navigator.geolocation.clearWatch(watchId);
+      delete watchersRef.current[deviceId];
+    }
+
+    setDevices((previousDevices) =>
+      previousDevices.map((device) =>
+        device.id === deviceId
+          ? {
+              ...device,
+              isSharing: false,
+              status: "Not sharing",
+              location: "Location sharing is off",
+              lastUpdated: "Stopped by owner"
+            }
+          : device
+      )
+    );
+  }
+
+  function handleToggleSharing(deviceId, isSharing) {
+    if (isSharing) {
+      handleStopSharing(deviceId);
+    } else {
+      handleStartSharing(deviceId);
+    }
+  }
+
   function handleRemoveDevice(deviceId) {
+    const watchId = watchersRef.current[deviceId];
+
+    if (watchId !== undefined) {
+      navigator.geolocation.clearWatch(watchId);
+      delete watchersRef.current[deviceId];
+    }
+
     setDevices((previousDevices) =>
       previousDevices.filter(
         (device) => device.id !== deviceId
@@ -39,7 +146,15 @@ function Dashboard() {
     );
   }
 
-  // Calculate dashboard statistics
+  // Stop all active location watchers when Dashboard unmounts.
+  useEffect(() => {
+    return () => {
+      Object.values(watchersRef.current).forEach((watchId) => {
+        navigator.geolocation.clearWatch(watchId);
+      });
+    };
+  }, []);
+
   const totalDevices = devices.length;
 
   const onlineDevices = devices.filter(
@@ -51,13 +166,11 @@ function Dashboard() {
   ).length;
 
   const sharedDevices = devices.filter(
-    (device) => device.status === "Online"
+    (device) => device.isSharing
   ).length;
 
   return (
     <div className="space-y-8">
-
-      {/* Page heading */}
       <div>
         <h1 className="text-2xl font-bold text-white">
           Dashboard
@@ -68,9 +181,7 @@ function Dashboard() {
         </p>
       </div>
 
-      {/* Statistics */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
-
         <StatCard
           title="Total Devices"
           value={totalDevices}
@@ -82,7 +193,7 @@ function Dashboard() {
         <StatCard
           title="Online Devices"
           value={onlineDevices}
-          description="Currently online"
+          description="Currently sending location"
           icon={Wifi}
           color="bg-emerald-500/10 text-emerald-400"
         />
@@ -102,12 +213,9 @@ function Dashboard() {
           icon={Users}
           color="bg-blue-500/10 text-blue-400"
         />
-
       </div>
 
-      {/* Map section */}
       <section className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
-
         <div className="mb-5">
           <h2 className="text-lg font-semibold text-white">
             Device Locations
@@ -119,29 +227,23 @@ function Dashboard() {
         </div>
 
         <div className="flex h-72 flex-col items-center justify-center rounded-xl border border-dashed border-slate-700 bg-slate-950">
-
           <div className="rounded-full bg-violet-500/10 p-4 text-violet-400">
             <Smartphone size={32} />
           </div>
 
           <h3 className="mt-4 font-medium text-white">
-            No live locations yet
+            No live map yet
           </h3>
 
           <p className="mt-2 max-w-sm text-center text-sm text-slate-500">
-            Enable location sharing on a registered device
-            to see its location on the map.
+            Location coordinates will appear on your device cards
+            when sharing is enabled.
           </p>
-
         </div>
-
       </section>
 
-      {/* Devices section */}
       <section>
-
         <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
-
           <div>
             <h2 className="text-lg font-semibold text-white">
               Your Devices
@@ -158,28 +260,21 @@ function Dashboard() {
           >
             + Add Device
           </button>
-
         </div>
 
-        {/* Device cards */}
         {devices.length > 0 ? (
-
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-
             {devices.map((device) => (
               <DeviceCard
                 key={device.id}
                 device={device}
                 onRemove={handleRemoveDevice}
+                onToggleSharing={handleToggleSharing}
               />
             ))}
-
           </div>
-
         ) : (
-
           <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-900 p-10 text-center">
-
             <Smartphone
               size={35}
               className="mx-auto text-slate-500"
@@ -192,21 +287,16 @@ function Dashboard() {
             <p className="mt-2 text-sm text-slate-400">
               Add your first device to get started.
             </p>
-
           </div>
-
         )}
-
       </section>
 
-      {/* Registration modal */}
       {showForm && (
         <DeviceForm
           onAddDevice={handleAddDevice}
           onClose={() => setShowForm(false)}
         />
       )}
-
     </div>
   );
 }
