@@ -15,6 +15,7 @@ import DeviceForm from "../components/DeviceForm";
 function Dashboard() {
   const [devices, setDevices] = useState([]);
   const [showForm, setShowForm] = useState(false);
+  const [currentLocation, setCurrentLocation] = useState(null);
 
   // Keeps track of active browser location watchers.
   const watchersRef = useRef({});
