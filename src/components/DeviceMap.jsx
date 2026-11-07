@@ -50,10 +50,14 @@ function DeviceMap({ devices, currentLocation }) {
   );
 
   const hasLocations =
-    devicesWithLocation.length > 0 || currentLocation !== null;
+    devicesWithLocation.length > 0 ||
+    currentLocation !== null;
 
   const initialCenter = currentLocation
-    ? [currentLocation.latitude, currentLocation.longitude]
+    ? [
+        currentLocation.latitude,
+        currentLocation.longitude
+      ]
     : devicesWithLocation.length > 0
       ? [
           devicesWithLocation[0].latitude,
